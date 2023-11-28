@@ -1,20 +1,21 @@
 name: meta-ptx CI
 
 on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+  push: {}
+  pull_request: {}
+  workflow_dispatch: {}
+
 jobs:
   build:
     name: meta-ptx Build
-    runs-on: ubuntu-20.04
+    #runs-on: ${{ vars.BUILD_RUNS_ON || (github.repository == 'pengutronix/meta-ptx' && 'ptx-runner') || 'ubuntu-latest' }}
+    runs-on: [self-hosted, forrest, build]
     timeout-minutes: 720
     steps:
+      - name: Setup SSH Key for Yocto Cache
+        run: |
+          echo "${{ secrets.YOCTO_CACHE_KEY }}" >> ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
       - name: Install required packages
         run: |
           sudo apt-get install diffstat
@@ -23,16 +24,16 @@ jobs:
         with:
           path: meta-ptx
       - name: Clone poky
-        run: git clone -b master git://git.yoctoproject.org/poky
+        run: git clone --shared --reference-if-able /srv/shared-git/poky.git -b master https://github.com/yoctoproject/poky.git
       - name: Clone meta-openembedded
-        run: git clone -b master https://github.com/openembedded/meta-openembedded.git
+        run: git clone --shared --reference-if-able /srv/shared-git/meta-openembedded.git -b master https://github.com/openembedded/meta-openembedded.git
       - name: Initialize build directory
         run: |
           source poky/oe-init-build-env build
           bitbake-layers add-layer ../meta-ptx
+          cp ~/.yocto/auto.conf conf/ || true
           echo 'INHERIT += "rm_work"' >> conf/local.conf
           echo 'DISTRO_FEATURES:remove = "alsa bluetooth usbgadget usbhost wifi nfs zeroconf pci 3g nfc x11 opengl ptest wayland vulkan"' >> conf/local.conf
-          echo 'SSTATE_MIRRORS = "file://.* http://195.201.147.117/sstate-cache/PATH"' >> conf/local.conf
       - name: Build barebox
         run: |
           source poky/oe-init-build-env build
@@ -50,3 +51,8 @@ jobs:
         run: |
           source poky/oe-init-build-env build
           bitbake platsch
+      - name: Cache Data
+        if: ${{ !cancelled() }}
+        run: |
+          test ! -s ~/.ssh/id_ed25519 || rsync -rvx --ignore-existing build/downloads yocto-cache: || true
+          test ! -s ~/.ssh/id_ed25519 || rsync -rvx --ignore-existing build/sstate-cache yocto-cache: || true
