@@ -16,9 +16,6 @@ jobs:
         run: |
           echo "${{ secrets.YOCTO_CACHE_KEY }}" >> ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-      - name: Install required packages
-        run: |
-          sudo apt-get install diffstat
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -32,31 +29,26 @@ jobs:
           source poky/oe-init-build-env build
           bitbake-layers add-layer ../meta-ptx
           cp ~/.yocto/auto.conf conf/ || true
-          echo 'INHERIT += "rm_work"' >> conf/local.conf
           echo 'DISTRO_FEATURES:remove = "alsa bluetooth usbgadget usbhost wifi nfs zeroconf pci 3g nfc x11 opengl ptest wayland vulkan"' >> conf/local.conf
-      - name: Build libtool-native
-        run: |
-          source poky/oe-init-build-env build
-          bitbake libtool-native
       - name: Build barebox
         run: |
           source poky/oe-init-build-env build
           echo 'BAREBOX_CONFIG = "efi_defconfig"' >> conf/local.conf
           bitbake barebox
-      #- name: Build genimage, genimage-native
-      #  run: |
-      #    source poky/oe-init-build-env build
-      #    bitbake genimage genimage-native
-      #- name: Build dt-utils
-      #  run: |
-      #    source poky/oe-init-build-env build
-      #    bitbake dt-utils
-      #- name: Build platsch
-      #  run: |
-      #    source poky/oe-init-build-env build
-      #    bitbake platsch
+      - name: Build genimage, genimage-native
+        run: |
+          source poky/oe-init-build-env build
+          bitbake genimage genimage-native
+      - name: Build dt-utils
+        run: |
+          source poky/oe-init-build-env build
+          bitbake dt-utils
+      - name: Build platsch
+        run: |
+          source poky/oe-init-build-env build
+          bitbake platsch
       - name: Cache Data
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         run: |
           test ! -s ~/.ssh/id_ed25519 || rsync -rvx --ignore-existing build/downloads yocto-cache: || true
           test ! -s ~/.ssh/id_ed25519 || rsync -rvx --ignore-existing build/sstate-cache yocto-cache: || true
