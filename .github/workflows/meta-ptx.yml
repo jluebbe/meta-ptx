@@ -34,23 +34,27 @@ jobs:
           cp ~/.yocto/auto.conf conf/ || true
           echo 'INHERIT += "rm_work"' >> conf/local.conf
           echo 'DISTRO_FEATURES:remove = "alsa bluetooth usbgadget usbhost wifi nfs zeroconf pci 3g nfc x11 opengl ptest wayland vulkan"' >> conf/local.conf
-      - name: Build barebox
+      - name: Build libtool-native
         run: |
           source poky/oe-init-build-env build
-          echo 'BAREBOX_CONFIG = "efi_defconfig"' >> conf/local.conf
-          bitbake barebox
-      - name: Build genimage, genimage-native
-        run: |
-          source poky/oe-init-build-env build
-          bitbake genimage genimage-native
-      - name: Build dt-utils
-        run: |
-          source poky/oe-init-build-env build
-          bitbake dt-utils
-      - name: Build platsch
-        run: |
-          source poky/oe-init-build-env build
-          bitbake platsch
+          bitbake libtool-native
+      #- name: Build barebox
+      #  run: |
+      #    source poky/oe-init-build-env build
+      #    echo 'BAREBOX_CONFIG = "efi_defconfig"' >> conf/local.conf
+      #    bitbake barebox
+      #- name: Build genimage, genimage-native
+      #  run: |
+      #    source poky/oe-init-build-env build
+      #    bitbake genimage genimage-native
+      #- name: Build dt-utils
+      #  run: |
+      #    source poky/oe-init-build-env build
+      #    bitbake dt-utils
+      #- name: Build platsch
+      #  run: |
+      #    source poky/oe-init-build-env build
+      #    bitbake platsch
       - name: Cache Data
         if: ${{ !cancelled() }}
         run: |
